@@ -21,13 +21,13 @@
 #include "Poco/KeyValueArgs.h"
 #include "Poco/ValidArgs.h"
 #include "Poco/EventArgs.h"
-#include <set>
+#include <unordered_set>
 
 
 namespace Poco {
 
 
-template <class TKey, class TValue> 
+template <class TKey, class TValue, class HashKey = std::hash<TKey>, class EqualsKey = std::equal_to<TKey>>
 class AbstractStrategy
 	/// An AbstractStrategy is the interface for all strategies. 
 {
@@ -64,7 +64,7 @@ public:
 	virtual void onIsValid(const void* pSender, ValidArgs<TKey>& key) = 0;
 		/// Used to query if a key is still valid (i.e. cached).
 
-	virtual void onReplace(const void* pSender, std::set<TKey>& elemsToRemove) = 0;
+	virtual void onReplace(const void* pSender, std::unordered_set<TKey, HashKey, EqualsKey>& elemsToRemove) = 0;
 		/// Used by the Strategy to indicate which elements should be removed from
 		/// the cache. Note that onReplace does not change the current list of keys.
 		/// The cache object is reponsible to remove the elements.

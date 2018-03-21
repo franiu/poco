@@ -24,22 +24,24 @@
 #include "Poco/EventArgs.h"
 #include "Poco/Exception.h"
 #include <list>
-#include <map>
+#include <unordered_map>
 #include <cstddef>
 
 
 namespace Poco {
 
 
-template <class TKey, class TValue>
-class LRUStrategy: public AbstractStrategy<TKey, TValue>
+template <class TKey, class TValue, class HashKey = std::hash<TKey>,
+		class EqualsKey = std::equal_to<TKey>>
+class LRUStrategy: public AbstractStrategy<TKey, TValue, HashKey, EqualsKey>
 	/// An LRUStrategy implements least recently used cache replacement.
 {
 public:
 	typedef std::list<TKey>                   Keys;
 	typedef typename Keys::iterator           Iterator;
 	typedef typename Keys::const_iterator     ConstIterator;
-	typedef std::map<TKey, Iterator>          KeyIndex;
+	typedef std::unordered_map<TKey, Iterator, HashKey, EqualsKey> KeyIndex;
+	typedef std::unordered_set<TKey, HashKey, EqualsKey> KeySet;
 	typedef typename KeyIndex::iterator       IndexIterator;
 	typedef typename KeyIndex::const_iterator ConstIndexIterator;
 
@@ -101,7 +103,7 @@ public:
 		}
 	}
 
-	void onReplace(const void*, std::set<TKey>& elemsToRemove)
+	void onReplace(const void*, KeySet& elemsToRemove)
 	{
 		// Note: replace only informs the cache which elements
 		// it would like to remove!

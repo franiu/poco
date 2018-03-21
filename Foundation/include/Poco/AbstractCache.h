@@ -26,15 +26,16 @@
 #include "Poco/EventArgs.h"
 #include "Poco/Delegate.h"
 #include "Poco/SharedPtr.h"
-#include <map>
-#include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <cstddef>
 
 
 namespace Poco {
 
 
-template <class TKey, class TValue, class TStrategy, class TMutex = FastMutex, class TEventMutex = FastMutex> 
+template <class TKey, class TValue, class TStrategy, class HashKey = std::hash<TKey>,
+		class EqualsKey = std::equal_to<TKey>, class TMutex = FastMutex, class TEventMutex = FastMutex>
 class AbstractCache
 	/// An AbstractCache is the interface of all caches. 
 {
@@ -45,10 +46,10 @@ public:
 	FIFOEvent<const TKey, TEventMutex>                         Get;
 	FIFOEvent<const EventArgs, TEventMutex>                    Clear;
 
-	typedef std::map<TKey, SharedPtr<TValue > > DataHolder;
+	typedef std::unordered_map<TKey, SharedPtr<TValue>, HashKey, EqualsKey> DataHolder;
 	typedef typename DataHolder::iterator       Iterator;
 	typedef typename DataHolder::const_iterator ConstIterator;
-	typedef std::set<TKey>                      KeySet;
+	typedef std::unordered_set<TKey, HashKey, EqualsKey> KeySet;
 
 	AbstractCache()
 	{
@@ -162,14 +163,14 @@ public:
 		doReplace();
 	}
 
-	std::set<TKey> getAllKeys()
+	KeySet getAllKeys()
 		/// Returns a copy of all keys stored in the cache
 	{
 		typename TMutex::ScopedLock lock(_mutex);
 		doReplace();
 		ConstIterator it = _data.begin();
 		ConstIterator itEnd = _data.end();
-		std::set<TKey> result;
+		KeySet result;
 		for (; it != itEnd; ++it)
 			result.insert(it->first);
 
@@ -337,11 +338,11 @@ protected:
 
 	void doReplace()
 	{
-		std::set<TKey> delMe;
+		KeySet delMe;
 		Replace.notify(this, delMe);
 		// delMe contains the to be removed elements
-		typename std::set<TKey>::const_iterator it    = delMe.begin();
-		typename std::set<TKey>::const_iterator endIt = delMe.end();
+		typename KeySet::const_iterator it    = delMe.begin();
+		typename KeySet::const_iterator endIt = delMe.end();
 
 		for (; it != endIt; ++it)
 		{
